@@ -1,0 +1,367 @@
+[gd_scene load_steps=2 format=3 uid="uid://bassdriftui0001"]
+
+[ext_resource type="Script" path="res://scripts/UI.gd" id="1_ui"]
+
+[node name="UI" type="CanvasLayer"]
+layer = 10
+script = ExtResource("1_ui")
+
+[node name="StartScreen" type="Control" parent="."]
+layout_mode = 3
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+
+[node name="Dim" type="ColorRect" parent="StartScreen"]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+mouse_filter = 2
+color = Color(0.02, 0.02, 0.06, 0.35)
+
+[node name="Title" type="Label" parent="StartScreen"]
+layout_mode = 1
+anchors_preset = 5
+anchor_left = 0.5
+anchor_right = 0.5
+offset_left = -280.0
+offset_top = 160.0
+offset_right = 280.0
+offset_bottom = 260.0
+grow_horizontal = 2
+theme_override_colors/font_color = Color(0.75, 0.98, 1, 1)
+theme_override_colors/font_outline_color = Color(0, 0.4, 0.55, 1)
+theme_override_constants/outline_size = 8
+theme_override_font_sizes/font_size = 64
+text = "BASS DRIFT"
+horizontal_alignment = 1
+
+[node name="HoldHint" type="Label" parent="StartScreen"]
+layout_mode = 1
+anchors_preset = 8
+anchor_left = 0.5
+anchor_top = 0.5
+anchor_right = 0.5
+anchor_bottom = 0.5
+offset_left = -300.0
+offset_top = -20.0
+offset_right = 300.0
+offset_bottom = 40.0
+grow_horizontal = 2
+grow_vertical = 2
+theme_override_colors/font_color = Color(1, 0, 0.4, 1)
+theme_override_font_sizes/font_size = 28
+text = "УДЕРЖИВАЙ ДЛЯ ДРИФТА"
+horizontal_alignment = 1
+
+[node name="BpmLabel" type="Label" parent="StartScreen"]
+layout_mode = 1
+anchors_preset = 8
+anchor_left = 0.5
+anchor_top = 0.5
+anchor_right = 0.5
+anchor_bottom = 0.5
+offset_left = -220.0
+offset_top = 40.0
+offset_right = 220.0
+offset_bottom = 80.0
+grow_horizontal = 2
+grow_vertical = 2
+theme_override_colors/font_color = Color(0.7, 0.85, 0.95, 0.85)
+theme_override_font_sizes/font_size = 18
+text = "FUNK 130"
+horizontal_alignment = 1
+
+[node name="PresetOption" type="OptionButton" parent="StartScreen"]
+layout_mode = 1
+anchors_preset = 7
+anchor_left = 0.5
+anchor_top = 1.0
+anchor_right = 0.5
+anchor_bottom = 1.0
+offset_left = -120.0
+offset_top = -220.0
+offset_right = 120.0
+offset_bottom = -180.0
+grow_horizontal = 2
+grow_vertical = 0
+
+[node name="PlayButton" type="Button" parent="StartScreen"]
+layout_mode = 1
+anchors_preset = 7
+anchor_left = 0.5
+anchor_top = 1.0
+anchor_right = 0.5
+anchor_bottom = 1.0
+offset_left = -140.0
+offset_top = -160.0
+offset_right = 140.0
+offset_bottom = -90.0
+grow_horizontal = 2
+grow_vertical = 0
+theme_override_colors/font_color = Color(0.05, 0.05, 0.1, 1)
+theme_override_colors/font_hover_color = Color(0.05, 0.05, 0.1, 1)
+theme_override_colors/font_pressed_color = Color(0.05, 0.05, 0.1, 1)
+theme_override_font_sizes/font_size = 28
+text = "СТАРТ"
+
+[node name="HUD" type="Control" parent="."]
+visible = false
+layout_mode = 3
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+mouse_filter = 2
+
+[node name="TrackProgress" type="ProgressBar" parent="HUD"]
+layout_mode = 1
+anchors_preset = 10
+anchor_right = 1.0
+offset_left = 24.0
+offset_top = 16.0
+offset_right = -24.0
+offset_bottom = 24.0
+grow_horizontal = 2
+max_value = 1.0
+show_percentage = false
+
+[node name="ScoreLabel" type="Label" parent="HUD"]
+layout_mode = 1
+anchors_preset = 5
+anchor_left = 0.5
+anchor_right = 0.5
+offset_left = -120.0
+offset_top = 36.0
+offset_right = 120.0
+offset_bottom = 90.0
+grow_horizontal = 2
+theme_override_colors/font_color = Color(0.9, 0.98, 1, 1)
+theme_override_font_sizes/font_size = 36
+text = "0"
+horizontal_alignment = 1
+
+[node name="ComboPlaque" type="Label" parent="HUD"]
+visible = false
+layout_mode = 1
+anchors_preset = 5
+anchor_left = 0.5
+anchor_right = 0.5
+offset_left = -100.0
+offset_top = 96.0
+offset_right = 100.0
+offset_bottom = 130.0
+grow_horizontal = 2
+theme_override_colors/font_color = Color(1, 0.2, 0.45, 1)
+theme_override_font_sizes/font_size = 22
+text = "COMBO x2"
+horizontal_alignment = 1
+
+[node name="GameOver" type="Control" parent="."]
+visible = false
+layout_mode = 3
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+
+[node name="Dim" type="ColorRect" parent="GameOver"]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+color = Color(0.02, 0.02, 0.05, 0.72)
+
+[node name="OverTitle" type="Label" parent="GameOver"]
+layout_mode = 1
+anchors_preset = 5
+anchor_left = 0.5
+anchor_right = 0.5
+offset_left = -200.0
+offset_top = 220.0
+offset_right = 200.0
+offset_bottom = 280.0
+grow_horizontal = 2
+theme_override_colors/font_color = Color(1, 0.25, 0.5, 1)
+theme_override_font_sizes/font_size = 36
+text = "CRASH"
+horizontal_alignment = 1
+
+[node name="ScoreValue" type="Label" parent="GameOver"]
+layout_mode = 1
+anchors_preset = 5
+anchor_left = 0.5
+anchor_right = 0.5
+offset_left = -200.0
+offset_top = 300.0
+offset_right = 200.0
+offset_bottom = 380.0
+grow_horizontal = 2
+theme_override_colors/font_color = Color(0.9, 0.98, 1, 1)
+theme_override_font_sizes/font_size = 56
+text = "0"
+horizontal_alignment = 1
+
+[node name="BestValue" type="Label" parent="GameOver"]
+layout_mode = 1
+anchors_preset = 5
+anchor_left = 0.5
+anchor_right = 0.5
+offset_left = -200.0
+offset_top = 390.0
+offset_right = 200.0
+offset_bottom = 430.0
+grow_horizontal = 2
+theme_override_colors/font_color = Color(0.6, 0.8, 0.9, 1)
+theme_override_font_sizes/font_size = 22
+text = "BEST  0"
+horizontal_alignment = 1
+
+[node name="PercentValue" type="Label" parent="GameOver"]
+layout_mode = 1
+anchors_preset = 5
+anchor_left = 0.5
+anchor_right = 0.5
+offset_left = -200.0
+offset_top = 440.0
+offset_right = 200.0
+offset_bottom = 480.0
+grow_horizontal = 2
+theme_override_colors/font_color = Color(0.5, 0.75, 0.85, 1)
+theme_override_font_sizes/font_size = 20
+text = "0% TRACK"
+horizontal_alignment = 1
+
+[node name="AgainButton" type="Button" parent="GameOver"]
+layout_mode = 1
+anchors_preset = 7
+anchor_left = 0.5
+anchor_top = 1.0
+anchor_right = 0.5
+anchor_bottom = 1.0
+offset_left = -180.0
+offset_top = -280.0
+offset_right = 180.0
+offset_bottom = -180.0
+grow_horizontal = 2
+grow_vertical = 0
+theme_override_font_sizes/font_size = 40
+text = "ЕЩЁ РАЗ"
+
+[node name="SettingsButton" type="Button" parent="."]
+offset_left = 620.0
+offset_top = 24.0
+offset_right = 688.0
+offset_bottom = 72.0
+theme_override_font_sizes/font_size = 22
+text = "⚙"
+
+[node name="Settings" type="Control" parent="."]
+visible = false
+layout_mode = 3
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+
+[node name="Panel" type="ColorRect" parent="Settings"]
+layout_mode = 1
+anchors_preset = 8
+anchor_left = 0.5
+anchor_top = 0.5
+anchor_right = 0.5
+anchor_bottom = 0.5
+offset_left = -280.0
+offset_top = -320.0
+offset_right = 280.0
+offset_bottom = 320.0
+grow_horizontal = 2
+grow_vertical = 2
+color = Color(0.06, 0.07, 0.14, 0.95)
+
+[node name="Title" type="Label" parent="Settings"]
+layout_mode = 1
+anchors_preset = 5
+anchor_left = 0.5
+anchor_right = 0.5
+offset_left = -120.0
+offset_top = 360.0
+offset_right = 120.0
+offset_bottom = 410.0
+grow_horizontal = 2
+theme_override_font_sizes/font_size = 28
+text = "SETTINGS"
+horizontal_alignment = 1
+
+[node name="VolLabel" type="Label" parent="Settings"]
+offset_left = 120.0
+offset_top = 440.0
+offset_right = 400.0
+offset_bottom = 470.0
+text = "Volume"
+
+[node name="VolumeSlider" type="HSlider" parent="Settings"]
+offset_left = 120.0
+offset_top = 480.0
+offset_right = 600.0
+offset_bottom = 510.0
+
+[node name="OffLabel" type="Label" parent="Settings"]
+offset_left = 120.0
+offset_top = 540.0
+offset_right = 500.0
+offset_bottom = 570.0
+text = "Audio calib (ms)"
+
+[node name="OffsetSlider" type="HSlider" parent="Settings"]
+offset_left = 120.0
+offset_top = 580.0
+offset_right = 600.0
+offset_bottom = 610.0
+min_value = -200.0
+max_value = 200.0
+
+[node name="OffsetValue" type="Label" parent="Settings"]
+offset_left = 120.0
+offset_top = 620.0
+offset_right = 300.0
+offset_bottom = 650.0
+text = "+0 ms"
+
+[node name="Metronome" type="ColorRect" parent="Settings"]
+offset_left = 520.0
+offset_top = 620.0
+offset_right = 600.0
+offset_bottom = 660.0
+color = Color(0, 0.94, 1, 0)
+
+[node name="SkinLabel" type="Label" parent="Settings"]
+offset_left = 120.0
+offset_top = 700.0
+offset_right = 400.0
+offset_bottom = 730.0
+text = "Neon skins"
+
+[node name="SkinBox" type="HBoxContainer" parent="Settings"]
+offset_left = 120.0
+offset_top = 740.0
+offset_right = 600.0
+offset_bottom = 790.0
+theme_override_constants/separation = 16
+
+[node name="CloseButton" type="Button" parent="Settings"]
+offset_left = 240.0
+offset_top = 860.0
+offset_right = 480.0
+offset_bottom = 920.0
+text = "CLOSE"

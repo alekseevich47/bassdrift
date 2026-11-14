@@ -1,0 +1,50 @@
+[gd_scene load_steps=2 format=3 uid="uid://bassdriftcar001"]
+
+[ext_resource type="Script" path="res://scripts/Car.gd" id="1_car"]
+
+[node name="Car" type="Node2D"]
+z_index = 10
+script = ExtResource("1_car")
+
+[node name="SkidMarks" type="Node2D" parent="."]
+z_index = -1
+
+[node name="HullPolygon" type="Polygon2D" parent="."]
+color = Color(0.05, 0.12, 0.22, 1)
+polygon = PackedVector2Array(0, -28, 14, -10, 12, 22, 0, 18, -12, 22, -14, -10)
+
+[node name="AccentStripe" type="Polygon2D" parent="."]
+color = Color(0, 0.94, 1, 1)
+polygon = PackedVector2Array(-3, -22, 3, -22, 2, 8, -2, 8)
+
+[node name="Cabin" type="Polygon2D" parent="."]
+color = Color(0.12, 0.2, 0.32, 1)
+polygon = PackedVector2Array(-7, -6, 7, -6, 6, 8, -6, 8)
+
+[node name="HeadlightL" type="Polygon2D" parent="."]
+z_index = 1
+color = Color(1, 0.95, 0.7, 0.95)
+polygon = PackedVector2Array(-12, -18, -6, -26, -5, -18)
+
+[node name="HeadlightR" type="Polygon2D" parent="."]
+z_index = 1
+color = Color(1, 0.95, 0.7, 0.95)
+polygon = PackedVector2Array(12, -18, 6, -26, 5, -18)
+
+[node name="HeadlightGlowL" type="Polygon2D" parent="."]
+z_index = 0
+color = Color(1, 0.9, 0.5, 0.25)
+polygon = PackedVector2Array(-14, -16, -4, -40, 0, -16)
+
+[node name="HeadlightGlowR" type="Polygon2D" parent="."]
+z_index = 0
+color = Color(1, 0.9, 0.5, 0.25)
+polygon = PackedVector2Array(14, -16, 4, -40, 0, -16)
+
+[node name="SparkTrail" type="GPUParticles2D" parent="."]
+z_index = 5
+emitting = false
+
+[node name="CrashBurst" type="GPUParticles2D" parent="."]
+z_index = 6
+emitting = false

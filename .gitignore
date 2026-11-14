@@ -1,0 +1,11 @@
+.godot/
+*.translation
+export.cfg
+*.apk
+*.aab
+*.so
+*.pck
+.import/
+*.tmp
+*~
+.DS_Store

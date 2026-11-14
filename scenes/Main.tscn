@@ -1,0 +1,84 @@
+[gd_scene load_steps=7 format=3 uid="uid://bassdriftmain01"]
+
+[ext_resource type="Script" path="res://scripts/Main.gd" id="1_main"]
+[ext_resource type="Script" path="res://scripts/CameraJuice.gd" id="2_cam"]
+[ext_resource type="PackedScene" uid="uid://bassdriftroad01" path="res://scenes/RoadManager.tscn" id="3_road"]
+[ext_resource type="PackedScene" uid="uid://bassdriftcar001" path="res://scenes/Car.tscn" id="4_car"]
+[ext_resource type="PackedScene" uid="uid://bassdriftui0001" path="res://scenes/UI.tscn" id="5_ui"]
+[ext_resource type="Shader" path="res://shaders/neon_grid.gdshader" id="6_grid"]
+
+[sub_resource type="ShaderMaterial" id="ShaderMaterial_grid"]
+shader = ExtResource("6_grid")
+shader_parameter/bass_energy = 0.0
+shader_parameter/grid_color = Color(0, 0.55, 0.75, 0.35)
+shader_parameter/line_width = 0.008
+shader_parameter/cell_scale = 18.0
+shader_parameter/scroll_y = 0.0
+shader_parameter/vanishing = 0.55
+
+[sub_resource type="Environment" id="Environment_glow"]
+background_mode = 1
+background_color = Color(0.04, 0.04, 0.08, 1)
+glow_enabled = true
+glow_intensity = 1.4
+glow_strength = 1.1
+glow_bloom = 0.55
+glow_blend_mode = 1
+glow_hdr_threshold = 0.7
+adjustment_enabled = true
+adjustment_saturation = 1.15
+
+[node name="Main" type="Node2D"]
+script = ExtResource("1_main")
+
+[node name="WorldEnvironment" type="WorldEnvironment" parent="."]
+environment = SubResource("Environment_glow")
+
+[node name="ParallaxBG" type="CanvasLayer" parent="."]
+layer = -5
+
+[node name="BGFill" type="ColorRect" parent="ParallaxBG"]
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+mouse_filter = 2
+color = Color(0.035, 0.035, 0.07, 1)
+
+[node name="NeonGrid" type="ColorRect" parent="ParallaxBG"]
+material = SubResource("ShaderMaterial_grid")
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+mouse_filter = 2
+color = Color(1, 1, 1, 1)
+
+[node name="RoadManager" parent="." instance=ExtResource("3_road")]
+
+[node name="Car" parent="." instance=ExtResource("4_car")]
+position = Vector2(360, 1000)
+
+[node name="CameraJuice" type="Camera2D" parent="."]
+position = Vector2(360, 900)
+script = ExtResource("2_cam")
+
+[node name="GlitchLayer" type="CanvasLayer" parent="."]
+layer = 5
+
+[node name="BackBufferCopy" type="BackBufferCopy" parent="GlitchLayer"]
+copy_mode = 2
+
+[node name="GlitchRect" type="ColorRect" parent="GlitchLayer"]
+visible = false
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+mouse_filter = 2
+color = Color(1, 1, 1, 1)
+
+[node name="UI" parent="." instance=ExtResource("5_ui")]
