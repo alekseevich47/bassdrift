@@ -34,17 +34,18 @@ jobs:
 
       - name: Setup Android SDK
         uses: android-actions/setup-android@v3
+        with:
+          # The action's default "tools" package was removed from sdkmanager.
+          packages: "platform-tools platforms;android-34 build-tools;34.0.0 ndk;23.2.8568313 cmake;3.10.2.4988404"
+          log-accepted-android-sdk-licenses: false
 
-      - name: Install Android SDK packages
+      - name: Verify Android SDK packages
         run: |
           set -euo pipefail
-          yes | sdkmanager --licenses >/tmp/android-licenses.log || true
-          sdkmanager --install \
-            "platform-tools" \
-            "platforms;android-34" \
-            "build-tools;34.0.0" \
-            "cmake;3.10.2.4988404" \
-            "ndk;23.2.8568313"
+          test -d "${ANDROID_HOME}/platforms/android-34"
+          test -d "${ANDROID_HOME}/build-tools/34.0.0"
+          test -d "${ANDROID_HOME}/ndk/23.2.8568313"
+          echo "Android SDK ready at ${ANDROID_HOME}"
 
       - name: Install Godot 4.3 and export templates
         run: |
