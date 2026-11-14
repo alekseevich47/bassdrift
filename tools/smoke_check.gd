@@ -39,6 +39,8 @@ func _sync_checks() -> PackedStringArray:
 	_expect(GameData.upgrade_ids() == ["drift_angle", "turbo_boost", "armor", "magnet"], "upgrade ids", errors)
 	_expect(GameData.perk_ids() == ["beat_window", "combo_keeper", "cash_flow", "focus_slowmo"], "perk ids", errors)
 	_expect(GameData.MAX_UPGRADE_LEVEL == 5 and GameData.MAX_PERK_LEVEL == 5, "level caps", errors)
+	_expect(GameData.MAX_PILOT_LEVEL == 50, "pilot cap", errors)
+	_expect(SaveManager.MAX_PILOT_LEVEL == GameData.MAX_PILOT_LEVEL, "save pilot cap", errors)
 	_expect(SaveManager.MAX_UPGRADE_LEVEL == GameData.MAX_UPGRADE_LEVEL, "save upgrade cap", errors)
 	_expect(SaveManager.GRAPHICS_QUALITIES == GameData.GRAPHICS_QUALITIES, "graphics list", errors)
 	_expect(SaveManager.DIFFICULTIES == GameData.difficulty_ids(), "difficulty list", errors)
@@ -179,6 +181,39 @@ func _sync_checks() -> PackedStringArray:
 		(pause.get_node("Panel/ResumeButton") as Button).pressed.emit()
 		_expect(bool(resumed["ok"]), "pause resume", errors)
 		pause.queue_free()
+
+	SaveManager.reset_save()
+	var climb := 0
+	var climb_level := 1
+	while climb_level < 31:
+		climb += GameData.xp_to_next(climb_level)
+		climb_level += 1
+	var climbed: Dictionary = SaveManager.add_xp(climb, "past-thirty")
+	_expect(int(climbed.get("level", 0)) == 31, "pilot passes 30", errors)
+	_expect(SaveManager.get_pilot_level() == 31, "pilot level 31", errors)
+	var to_cap := 0
+	climb_level = SaveManager.get_pilot_level()
+	while climb_level < GameData.MAX_PILOT_LEVEL:
+		to_cap += GameData.xp_to_next(climb_level)
+		climb_level += 1
+	var capped: Dictionary = SaveManager.add_xp(to_cap + 5000, "pilot-cap")
+	_expect(int(capped.get("level", 0)) == 50, "pilot caps at 50", errors)
+	_expect(SaveManager.get_pilot_level() == 50, "pilot level 50", errors)
+	_expect(SaveManager.get_pilot_xp() == 0, "xp cleared at cap", errors)
+	var high: Dictionary = SaveManager.migrate({
+		"version": 2,
+		"pilot": {"level": 80, "xp": 40, "skill_points": 4},
+		"currency": {"cr": 12},
+		"owned_cars": ["street_86"],
+		"selected_car": "street_86",
+		"tutorial_seen": true,
+	})
+	_expect(int(high["pilot"]["level"]) == 50, "normalize clamps pilot", errors)
+	_expect(int(high["pilot"]["xp"]) == 0, "normalize clears overflow xp", errors)
+	_expect(int(high["pilot"]["skill_points"]) == 4, "clamp keeps skill points", errors)
+	_expect(int(high["currency"]["cr"]) == 12, "clamp keeps cr", errors)
+	_expect(bool(high.get("driving_tutorial_done", true)) == false, "coach flag default", errors)
+	_expect(bool(high.get("tutorial_seen", false)), "clamp keeps tutorial", errors)
 	return errors
 
 

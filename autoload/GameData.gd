@@ -6,7 +6,7 @@ extends Node
 
 const MAX_UPGRADE_LEVEL := 5
 const MAX_PERK_LEVEL := 5
-const MAX_PILOT_LEVEL := 30
+const MAX_PILOT_LEVEL := 50
 const STAR_CAP := 3
 
 const CAR_STREET_86 := "street_86"
@@ -446,6 +446,8 @@ func _add_perk(perk_id: String, display_name: String, blurb: String, per_level: 
 
 
 func _build_ranks() -> void:
+	# Thresholds stay early so a save earned under the old cap keeps its rank.
+	# Apex Legend then runs from 20 through MAX_PILOT_LEVEL.
 	_ranks = [
 		{"id": RANK_NOVICE, "name": "Novice", "min_level": 1},
 		{"id": RANK_STREET, "name": "Street Racer", "min_level": 5},

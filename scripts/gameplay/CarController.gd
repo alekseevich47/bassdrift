@@ -28,6 +28,7 @@ var _armor := 0.0
 var _magnet := 0.0
 var _turbo_boost := 0.0
 var _scrape_cd := 0.0
+var _immune := 0.0
 var _spark_time := 0.0
 var _paint_shift := false
 var _paint_time := 0.0
@@ -86,6 +87,20 @@ func add_boost(seconds: float) -> void:
 	boost_left = max(boost_left, seconds + _turbo_boost)
 
 
+func recover(hp_ratio: float = 0.5) -> void:
+	alive = true
+	var restored := maxf(max_hp * clampf(hp_ratio, 0.2, 1.0), 1.0)
+	hp = minf(maxf(hp, restored), max_hp)
+	lateral = 0.0
+	lateral_vel = 0.0
+	slip = 0.0
+	if speed < nominal_speed * 0.85:
+		speed = nominal_speed * 0.85
+	_immune = 1.4
+	_scrape_cd = 0.0
+	hp_changed.emit(hp, max_hp)
+
+
 func set_quality(quality: String) -> void:
 	var amount := 12
 	if quality == "low":
@@ -136,6 +151,7 @@ func tick(delta: float, target_lateral: float) -> void:
 		speed = max(speed - accel_rate * 0.45 * delta, desired)
 	boost_left = max(boost_left - delta, 0.0)
 	_scrape_cd = max(_scrape_cd - delta, 0.0)
+	_immune = max(_immune - delta, 0.0)
 	var limit := half_width - 18.0
 	if abs(lateral) > limit:
 		_contact(abs(lateral) - limit)
@@ -158,6 +174,8 @@ func rear_points() -> Array:
 
 
 func _contact(overlap: float) -> void:
+	if _immune > 0.0:
+		return
 	if _scrape_cd > 0.0 or not alive:
 		_spark_time = max(_spark_time, 0.05)
 		return

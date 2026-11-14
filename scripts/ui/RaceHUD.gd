@@ -7,12 +7,10 @@ extends CanvasLayer
 ## Signals: score_changed, score_updated, combo_changed, combo_updated,
 ##   progress_changed, track_progress_changed, rhythm_event, beat_hit,
 ##   rhythm_pulse, telemetry_changed, hud_state_changed.
-## RaceWorld: hud_updated(score, combo, progress, hp, beat_pulse),
+## RaceWorld: hud_state_changed(state) with score, combo, progress, bpm, beat_pulse,
 ##   beat_pulse(intensity, beat_index), judgement_shown(kind, points, combo).
 ## Methods polled at 10 Hz: get_score, get_combo, get_progress,
 ##   get_track_progress, get_rhythm, get_bpm, hud_snapshot.
-## Until gameplay ships those, score stays 0 and the bar pulses from the
-## campaign BPM (or the custom request BPM), shifted by audio_latency_ms.
 ## pause_requested comes from the pause button.
 ## push_result(dict) emits run_finished for the router.
 
@@ -35,6 +33,8 @@ var _bpm_override := 0.0
 var _hint_life := 0.0
 var _hint_text := ""
 var _external_rhythm := false
+var _pulse_latched := false
+var _judgement_seen := ""
 
 
 func _ready() -> void:
@@ -304,6 +304,18 @@ func _on_bundle_signal(payload = null) -> void:
 		set_progress(float(data["progress"]))
 	if data.has("bpm"):
 		set_bpm(float(data["bpm"]))
+	if data.has("beat_pulse"):
+		var pulse := float(data["beat_pulse"])
+		if pulse >= 0.65 and not _pulse_latched:
+			_on_rhythm_signal(pulse)
+		_pulse_latched = pulse >= 0.65
+	if data.has("judgement"):
+		var kind := str(data["judgement"])
+		if kind != "" and kind != _judgement_seen:
+			_judgement_seen = kind
+			_on_rhythm_signal(kind)
+		elif kind == "":
+			_judgement_seen = ""
 	if data.has("rhythm"):
 		pulse_rhythm(data["rhythm"])
 

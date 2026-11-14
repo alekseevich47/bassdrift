@@ -66,8 +66,14 @@ func present(result: Dictionary) -> void:
 	_revive_used = false
 	_doubled = false
 	_ad_lock = false
+	var start_failed := bool(result.get("start_failed", false))
 	var crashed := _is_crashed(result)
-	%Kicker.text = "WRECKED" if crashed else "FINISH"
+	if start_failed:
+		%Kicker.text = "COULDN'T START"
+	elif crashed:
+		%Kicker.text = "WRECKED"
+	else:
+		%Kicker.text = "FINISH"
 	%Heading.text = _level_name(result)
 	%Score.text = "0"
 	_shown_score = 0
@@ -85,7 +91,9 @@ func present(result: Dictionary) -> void:
 		%LevelUp.modulate = Color(1, 1, 1, 0)
 	else:
 		%LevelUp.visible = false
-	if crashed and bool(result.get("can_revive", true)):
+	if start_failed:
+		%Status.text = str(result.get("status", "The race couldn't start."))
+	elif crashed and bool(result.get("can_revive", true)):
 		%Status.text = "Watch a short ad to get back on the line."
 	elif crashed:
 		%Status.text = str(result.get("status", "The run ended in the wall."))
@@ -173,12 +181,38 @@ func _on_revive_finished(success: bool) -> void:
 	_ad_lock = false
 	if not is_inside_tree():
 		return
-	if success:
-		_revive_used = true
-		revive_accepted.emit()
+	if not success:
+		_refresh_buttons()
+		%Status.text = "Ad didn't finish. You can try again."
 		return
-	_refresh_buttons()
-	%Status.text = "Ad didn't finish. You can try again."
+	_revive_used = true
+	if revive_accepted.get_connections().is_empty():
+		_revive_race_directly()
+		return
+	revive_accepted.emit()
+
+
+func _revive_race_directly() -> void:
+	var race := _find_race()
+	var tree := get_tree()
+	if tree:
+		tree.paused = false
+	if race and race.has_method("revive"):
+		race.revive()
+	elif race and race.has_method("resume_run"):
+		race.resume_run()
+	queue_free()
+
+
+func _find_race() -> Node:
+	var tree := get_tree()
+	if tree == null:
+		return null
+	for group_name in ["race_world", "apex_race"]:
+		var node := tree.get_first_node_in_group(group_name)
+		if node and not node.is_queued_for_deletion():
+			return node
+	return null
 
 
 func _on_double_pressed() -> void:

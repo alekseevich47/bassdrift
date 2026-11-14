@@ -11,6 +11,7 @@ const CORRUPT_PATH := "user://save.corrupt.json"
 const STARTER_CAR := "street_86"
 const MAX_UPGRADE_LEVEL := 5
 const MAX_PERK_LEVEL := 5
+const MAX_PILOT_LEVEL := 50
 const MIN_AUDIO_LATENCY_MS := -250
 const MAX_AUDIO_LATENCY_MS := 250
 const GRAPHICS_QUALITIES: Array = ["low", "medium", "high"]
@@ -640,6 +641,19 @@ func set_tutorial_seen(seen: bool = true) -> void:
 	save_game()
 
 
+func has_cleared_driving_tutorial() -> bool:
+	_ensure_loaded()
+	return bool(_state.get("driving_tutorial_done", false))
+
+
+func set_driving_tutorial_cleared(done: bool = true) -> void:
+	_ensure_loaded()
+	_state["driving_tutorial_done"] = done
+	if done:
+		_state["tutorial_seen"] = true
+	save_game()
+
+
 func get_paint(car_id: String) -> Dictionary:
 	_ensure_loaded()
 	var cars: Dictionary = _state["paint"]["cars"]
@@ -753,6 +767,12 @@ func _catalog_ready() -> bool:
 	return get_node_or_null("/root/GameData") != null
 
 
+func _pilot_cap() -> int:
+	if _catalog_ready():
+		return maxi(int(GameData.MAX_PILOT_LEVEL), 1)
+	return MAX_PILOT_LEVEL
+
+
 func _default_state() -> Dictionary:
 	return {
 		"version": SAVE_VERSION,
@@ -767,6 +787,7 @@ func _default_state() -> Dictionary:
 		"settings": _default_settings(),
 		"difficulty": "drive",
 		"tutorial_seen": false,
+		"driving_tutorial_done": false,
 		"stats": {"races_finished": 0, "cr_earned": 0, "cr_spent": 0, "xp_earned": 0, "last_cr_reason": ""},
 	}
 
@@ -845,8 +866,13 @@ func _normalize(data: Dictionary) -> Dictionary:
 	currency["cr"] = int(max(int(currency.get("cr", 0)), 0))
 	data["currency"] = currency
 	var pilot: Dictionary = data.get("pilot", {}) if typeof(data.get("pilot")) == TYPE_DICTIONARY else {}
-	pilot["level"] = int(max(int(pilot.get("level", 1)), 1))
-	pilot["xp"] = int(max(int(pilot.get("xp", 0)), 0))
+	var pilot_cap := _pilot_cap()
+	var pilot_level := clampi(int(pilot.get("level", 1)), 1, pilot_cap)
+	var pilot_xp := int(max(int(pilot.get("xp", 0)), 0))
+	if pilot_level >= pilot_cap:
+		pilot_xp = 0
+	pilot["level"] = pilot_level
+	pilot["xp"] = pilot_xp
 	pilot["skill_points"] = int(max(int(pilot.get("skill_points", 0)), 0))
 	data["pilot"] = pilot
 	data["owned_cars"] = _string_list(data.get("owned_cars"), [STARTER_CAR])
@@ -889,6 +915,7 @@ func _normalize(data: Dictionary) -> Dictionary:
 	var difficulty := str(data.get("difficulty", "drive"))
 	data["difficulty"] = difficulty if DIFFICULTIES.has(difficulty) else "drive"
 	data["tutorial_seen"] = bool(data.get("tutorial_seen", false))
+	data["driving_tutorial_done"] = bool(data.get("driving_tutorial_done", false))
 	var stats_in: Dictionary = data.get("stats", {}) if typeof(data.get("stats")) == TYPE_DICTIONARY else {}
 	var stats: Dictionary = defaults["stats"]
 	stats["races_finished"] = int(max(int(stats_in.get("races_finished", 0)), 0))

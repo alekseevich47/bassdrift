@@ -71,6 +71,7 @@ func _ready() -> void:
 			beat.pressed.emit()
 		_expect(SaveManager.get_perk_level("beat_window") == 1, "perk spent", errors)
 		_expect(str(pilot.find_child("LevelLabel", true, false).text).begins_with("LV "), "level label", errors)
+		_expect(str(pilot.find_child("XpLabel", true, false).text).contains("/ 50"), "pilot cap shown", errors)
 	menu.open_settings()
 	var settings := _living(menu.get_node("ScreenHost"))
 	_expect(settings != null, "settings open", errors)
@@ -143,6 +144,18 @@ func _ready() -> void:
 	if pause != null:
 		pause.find_child("ResumeButton", true, false).pressed.emit()
 	_expect(not get_tree().paused, "resumed", errors)
+	race.race_finished.emit({
+		"ok": true,
+		"reason": "cleared",
+		"crashed": false,
+		"can_revive": false,
+		"level_id": "haruna_01",
+		"level_name": "Touge Gate",
+		"score": 100,
+		"stars": 0,
+	})
+	_expect(_overlay(main, "ResultScreen") != null, "race_finished opens results", errors)
+	_expect(get_tree().paused, "race_finished pauses", errors)
 	AdMonetizationStub.editor_delay_sec = 0.05
 	AdMonetizationStub.export_delay_sec = 0.05
 	AdMonetizationStub.simulate_success = true
@@ -178,6 +191,8 @@ func _ready() -> void:
 	_expect(not get_tree().paused, "revived unpauses", errors)
 	_expect(_overlay(main, "ResultScreen") == null, "results closed", errors)
 	_expect(race.has_meta("apex_revive_token"), "revive token", errors)
+	var revived_car := race.find_child("Car", true, false)
+	_expect(revived_car != null and bool(revived_car.alive) and float(revived_car.hp) > 0.0, "revive restores car", errors)
 	main.show_custom_race({
 		"audio_path": "user://ui_smoke_tone.wav",
 		"display_name": "ui_smoke_tone.wav",
@@ -189,6 +204,18 @@ func _ready() -> void:
 	_expect(str(request.get("mode", "")) == "custom", "custom mode", errors)
 	_expect(is_equal_approx(float(request.get("bpm", 0.0)), 140.0), "custom bpm", errors)
 	_expect(str(main.get_race_request().get("difficulty", "")) == "hardcore", "custom difficulty", errors)
+	main.show_custom_race({
+		"audio_path": "user://missing-track.ogg",
+		"display_name": "missing-track.ogg",
+		"bpm": 120,
+		"difficulty": "drive",
+	})
+	var failed := _overlay(main, "ResultScreen")
+	_expect(failed != null, "start failure card", errors)
+	if failed != null:
+		_expect(str(failed.find_child("Kicker", true, false).text) == "COULDN'T START", "start kicker", errors)
+		_expect(str(failed.find_child("Status", true, false).text).contains("isn't there"), "friendly missing audio", errors)
+		_expect(not (failed.find_child("ReviveButton", true, false) as Button).visible, "no revive on bad file", errors)
 	SaveManager.set_tutorial_seen(false)
 	main.show_menu()
 	await get_tree().process_frame

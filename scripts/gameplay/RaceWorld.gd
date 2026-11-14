@@ -1,7 +1,9 @@
 extends Control
 
 ## Playable portrait race. Main.show_race() instantiates this scene and calls configure(level_id).
-## hud_updated and hud_snapshot are omitted on purpose: Main skips its RaceHUD when either exists.
+## hud_updated and hud_snapshot are omitted on purpose: Main mounts RaceHUD for this scene.
+## Score, combo, and the rhythm bar live on that overlay. This scene keeps the centre
+## judgement, the durability bar, and the driving-coach line.
 ##
 ## hud_state_changed(state): score, combo, progress (0-1), hp (durability, not a ratio),
 ##   hp_max, beat_pulse (1 on the beat, decays to 0), speed, nominal_speed, perfects, goods,
@@ -11,13 +13,14 @@ extends Control
 ## beat_pulse(intensity, beat_index)
 ## scrape_feedback(intensity)
 ## tutorial_changed(active, message)
-## pause_requested — the router opens its pause menu
+## pause_requested — the router opens its pause menu. Standalone play falls back to PauseOverlay.
 ## race_failed(reason) — start error string such as file_missing or decode_failed
 ## race_finished(result): ok, reason (cleared|wrecked), crashed, wrecked, failed, can_revive,
 ##   level_id, level_name, score, stars, best_stars, best_score, star_delta, cr_gain, xp_gain,
 ##   xp_result, coin_cr, perfects, goods, misses, saves, max_combo, progress, duration, saved, payout
 ## exit_requested — quit back to the menu. Quit does not call SaveManager.
-## Cleared and wrecked call record_level_result once. revive() continues a wreck.
+## A wreck or a clear records the campaign payout once. revive() / resume_run() continues
+## the wreck without paying that payout again. Coins collected after the revive still pay.
 
 signal exit_requested
 signal hud_state_changed(state: Dictionary)
@@ -116,7 +119,6 @@ var _progress_fill: ColorRect
 var _pulse_bar: ColorRect
 var _pause_button: Button
 var _pause_layer: CanvasLayer
-var _results: CanvasLayer
 var _sfx_scrape: AudioStreamPlayer
 var _sfx_perfect: AudioStreamPlayer
 var _sfx_good: AudioStreamPlayer
@@ -125,7 +127,8 @@ var _mark_left: Line2D
 var _mark_right: Line2D
 var _marking := false
 var _mark_groups: Array = []
-var _banked := false
+var _result_banked := false
+var _coins_banked := 0
 var _payout: Dictionary = {}
 
 
@@ -136,6 +139,7 @@ func _ready() -> void:
 	_road_tool = ROAD_SCRIPT.new()
 	_build_shell()
 	call_deferred("_ensure_started")
+	call_deferred("sync_meta_chrome")
 
 
 func _notification(what: int) -> void:
@@ -210,6 +214,12 @@ func is_tutorial_active() -> bool:
 	return _tutorial
 
 
+func tutorial_message() -> String:
+	if not _tutorial:
+		return ""
+	return TUTORIAL_TEXT
+
+
 func set_holding(held: bool) -> void:
 	_set_hold(held)
 
@@ -241,18 +251,30 @@ func get_hp() -> float:
 
 
 func revive() -> void:
-	if _car == null:
+	if _car == null or not is_instance_valid(_car):
 		return
+	_set_paused(false)
 	_finished = false
 	_running = true
-	_paused = false
-	_car.alive = true
-	if float(_car.hp) <= 0.0:
-		_car.hp = maxf(float(_car.max_hp) * 0.5, 1.0)
-	_car.speed = maxf(float(_car.speed), float(_car.nominal_speed) * 0.85)
+	if _car.has_method("recover"):
+		_car.recover(0.5)
+	else:
+		_car.alive = true
+		if float(_car.hp) <= 0.0:
+			_car.hp = maxf(float(_car.max_hp) * 0.5, 1.0)
+		_car.lateral = 0.0
+		_car.lateral_vel = 0.0
+		_car.speed = maxf(float(_car.speed), float(_car.nominal_speed) * 0.85)
 	if _music != null:
 		_music.stream_paused = false
+	var tree := get_tree()
+	if tree != null:
+		tree.paused = false
 	_emit_hud()
+
+
+func resume_run() -> void:
+	revive()
 
 
 func _telemetry() -> Dictionary:
@@ -293,6 +315,7 @@ func _telemetry() -> Dictionary:
 		"finished": _finished,
 		"paused": _paused,
 		"judgement": _judgement,
+		"bpm": float(_chart.get("bpm", 120.0)),
 	}
 
 
@@ -473,6 +496,10 @@ func _build_hud() -> void:
 	_tutorial_label = _label(40, 1080, 640, 90, 18, UiPalette.INK)
 	_tutorial_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	_tutorial_label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	_level_label.offset_left = 240.0
+	_level_label.offset_top = 1184.0
+	_level_label.offset_right = 680.0
+	_level_label.offset_bottom = 1212.0
 	_error_label = _label(48, 560, 624, 120, 22, UiPalette.AMBER)
 	_error_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	_error_label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
@@ -484,7 +511,7 @@ func _build_hud() -> void:
 	_pause_button.offset_right = 688.0
 	_pause_button.offset_bottom = 112.0
 	UiPalette.style_button(_pause_button, UiPalette.PIT, UiPalette.CYAN, 16)
-	_pause_button.pressed.connect(func() -> void: pause_requested.emit())
+	_pause_button.pressed.connect(_request_pause)
 	_pause_button.visible = false
 	_hud.add_child(_pause_button)
 	_score_label.visible = false
@@ -552,6 +579,7 @@ func _boot(chart: Dictionary, stream: AudioStream, campaign: bool) -> void:
 	_setup_audio(chart, stream, campaign)
 	_running = true
 	_emit_hud()
+	call_deferred("sync_meta_chrome")
 
 
 func _car_profile(chart: Dictionary) -> Dictionary:
@@ -651,10 +679,19 @@ func _reset_run_stats() -> void:
 	_music_time = 0.0
 	_music_pos = 0.0
 	_marking = false
+	_result_banked = false
+	_coins_banked = 0
+	_payout = {}
 
 
 func _arm_tutorial() -> void:
-	_tutorial = not SaveManager.has_seen_tutorial()
+	# The menu tips card writes tutorial_seen. The driving coach stays armed
+	# until the first apex, unless this profile already finished a race.
+	if not SaveManager.has_cleared_driving_tutorial() and SaveManager.has_seen_tutorial():
+		var races := int(SaveManager.get_state_copy().get("stats", {}).get("races_finished", 0))
+		if races > 0:
+			SaveManager.set_driving_tutorial_cleared(true)
+	_tutorial = not SaveManager.has_cleared_driving_tutorial()
 	_tutorial_s = -1.0
 	if not _tutorial:
 		_tutorial_label.visible = false
@@ -970,7 +1007,7 @@ func _update_tutorial() -> void:
 	if _tutorial_s >= 0.0 and _s >= _tutorial_s:
 		_tutorial = false
 		_tutorial_label.visible = false
-		SaveManager.set_tutorial_seen(true)
+		SaveManager.set_driving_tutorial_cleared(true)
 		tutorial_changed.emit(false, "")
 
 
@@ -993,14 +1030,16 @@ func _finish(reason: String) -> void:
 	if _music != null:
 		_music.stream_paused = true
 	var payout: Dictionary = _payout
-	var saved := _banked
-	if not _banked and GameData.has_level(_level_id) and SaveManager.is_level_unlocked(_level_id) and _score > 0:
+	var saved := _result_banked
+	if not _result_banked and GameData.has_level(_level_id) and SaveManager.is_level_unlocked(_level_id) and _score > 0:
 		payout = SaveManager.record_level_result(_level_id, _score)
 		_payout = payout
 		saved = bool(payout.get("ok", false))
-		_banked = true
-		if _coin_cr > 0:
-			SaveManager.add_cr(_coin_cr, "coins:%s" % _level_id)
+		_result_banked = true
+	var fresh_coins := _coin_cr - _coins_banked
+	if fresh_coins > 0:
+		SaveManager.add_cr(fresh_coins, "coins:%s" % _level_id)
+		_coins_banked = _coin_cr
 	var coin_grant := 0
 	if _coin_cr > 0:
 		coin_grant = _coin_cr
@@ -1039,53 +1078,28 @@ func _finish(reason: String) -> void:
 	race_finished.emit(result)
 
 
-func _show_results(result: Dictionary) -> void:
-	if _results != null:
-		_results.queue_free()
-	_results = CanvasLayer.new()
-	_results.layer = 24
-	add_child(_results)
-	var dim := ColorRect.new()
-	dim.set_anchors_preset(Control.PRESET_FULL_RECT)
-	dim.color = Color(0.02, 0.01, 0.04, 0.72)
-	_results.add_child(dim)
-	var panel := VBoxContainer.new()
-	panel.offset_left = 70.0
-	panel.offset_top = 360.0
-	panel.offset_right = 650.0
-	panel.offset_bottom = 980.0
-	panel.add_theme_constant_override("separation", 10)
-	_results.add_child(panel)
-	var title := Label.new()
-	title.text = "WRECKED" if str(result.get("reason", "")) == "wrecked" else "FINISH"
-	title.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	title.add_theme_font_size_override("font_size", 36)
-	title.add_theme_color_override("font_color", UiPalette.MAGENTA if title.text == "WRECKED" else UiPalette.INK)
-	panel.add_child(title)
-	var body := Label.new()
-	body.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	body.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
-	body.add_theme_font_size_override("font_size", 20)
-	body.add_theme_color_override("font_color", UiPalette.INK)
-	body.text = "Score %d\nStars %d\n+%d CR   +%d XP\nCoins +%d CR\nPerfect %d   Good %d   Miss %d\nMax combo %d" % [
-		int(result.get("score", 0)),
-		int(result.get("stars", 0)),
-		int(result.get("cr_gain", 0)),
-		int(result.get("xp_gain", 0)),
-		int(result.get("coin_cr", 0)),
-		int(result.get("perfects", 0)),
-		int(result.get("goods", 0)),
-		int(result.get("misses", 0)),
-		int(result.get("max_combo", 0)),
-	]
-	panel.add_child(body)
-	var button := Button.new()
-	button.text = "CONTINUE"
-	button.custom_minimum_size = Vector2(0, 64)
-	UiPalette.style_button(button, UiPalette.PIT, UiPalette.CYAN, 22)
-	button.pressed.connect(_leave)
-	panel.add_child(button)
-	_unlit(_results)
+func _request_pause() -> void:
+	if pause_requested.get_connections().size() > 0:
+		pause_requested.emit()
+		return
+	_pause()
+
+
+func sync_meta_chrome() -> void:
+	if _score_label == null:
+		return
+	var meta := false
+	var tree := get_tree()
+	if tree != null:
+		var hud := tree.get_first_node_in_group("apex_race_hud")
+		meta = hud != null and not hud.is_queued_for_deletion()
+	_score_label.visible = not meta
+	_combo_label.visible = not meta
+	_coin_label.visible = not meta
+	_pulse_bar.visible = not meta
+	_progress_fill.visible = not meta
+	_pause_button.visible = not meta
+	_level_label.visible = true
 
 
 func _pause() -> void:
@@ -1134,9 +1148,23 @@ func _set_paused(paused: bool) -> void:
 
 func _fail_start(reason: String) -> void:
 	_running = false
-	_error_label.visible = true
-	_error_label.text = "Could not start the race (%s)." % reason
+	var friendly := _friendly_start(reason)
+	var routed := race_failed.get_connections().size() > 0
+	_error_label.visible = not routed
+	_error_label.text = friendly
 	race_failed.emit(reason)
+
+
+func _friendly_start(reason: String) -> String:
+	match reason:
+		"file_missing", "empty_path":
+			return "That track isn't there."
+		"unsupported_format":
+			return "Use an mp3, ogg, or wav."
+		"decode_failed", "empty_audio", "wav_too_small", "wav_header", "wav_chunk", "wav_format", "wav_unsupported", "no_audio":
+			return "That file didn't play."
+		_:
+			return "The race couldn't start."
 
 
 func _clear_track() -> void:
@@ -1158,10 +1186,6 @@ func _clear_track() -> void:
 	_mark_left = null
 	_mark_right = null
 	_mark_groups.clear()
-	if _results != null:
-		var old_results := _results
-		_results = null
-		old_results.queue_free()
 
 
 func _set_hold(held: bool) -> void:
@@ -1197,6 +1221,7 @@ func _refresh_hud_widgets() -> void:
 	_pulse_bar.color.a = 0.15 + _beat_visual * 0.7
 	if _judgement_time >= 0.0 and _music_time - _judgement_time > 0.55:
 		_judge_label.text = ""
+		_judgement = ""
 
 
 func _emit_hud() -> void:

@@ -65,18 +65,45 @@ func _run() -> void:
 	if race_scene != null:
 		var race := race_scene.instantiate()
 		root.add_child(race)
+		var hud_bucket := {"state": {}}
+		race.hud_state_changed.connect(func(state) -> void:
+			hud_bucket["state"] = state
+		)
 		race.configure("haruna_01")
 		_expect(race.current_level_id() == "haruna_01", "level id", errors)
 		_expect(race.is_tutorial_active(), "tutorial", errors)
 		_expect(race.has_signal("hud_state_changed") and race.has_signal("race_finished") and race.has_signal("exit_requested"), "signals", errors)
+		_expect(not race.has_signal("hud_updated") and not race.has_method("hud_snapshot"), "meta hud contract", errors)
+		_expect(race.has_method("revive") and race.has_method("resume_run"), "revive api", errors)
 		race.set_holding(true)
 		for _i in 40:
 			await process_frame
 		_expect(float(race.get_progress()) > 0.0 or float(race.get_time()) > 0.0, "race advanced", errors)
 		_expect(float(race.get_hp()) > 0.0, "hp", errors)
+		var hud_state: Dictionary = hud_bucket["state"]
+		_expect(not hud_state.is_empty(), "hud emit", errors)
+		_expect(hud_state.has("score") and hud_state.has("combo") and hud_state.has("progress") and hud_state.has("bpm"), "hud fields", errors)
 		var image := root.get_viewport().get_texture().get_image()
 		if image != null and image.get_width() > 0:
 			image.save_png("/tmp/apex_race.png")
+		var before_pay := int(save.get_cr())
+		race._score = 8000
+		var car := race.find_child("Car", true, false)
+		_expect(car != null, "car", errors)
+		if car != null:
+			car.hp = 0.0
+			car.alive = false
+			car.wrecked.emit()
+			_expect(int(save.get_cr()) > before_pay, "wreck paid", errors)
+			var paid := int(save.get_cr())
+			race.revive()
+			_expect(bool(car.alive) and float(car.hp) > 0.0 and is_zero_approx(float(car.lateral)), "revived", errors)
+			race._score = 12000
+			car.hp = 0.0
+			car.alive = false
+			car.wrecked.emit()
+			_expect(int(save.get_cr()) == paid, "revive does not double pay", errors)
+			_expect(_find_text_button(race, "CONTINUE") == null, "no internal results card", errors)
 		race.queue_free()
 	if errors.is_empty():
 		print("GAMEPLAY OK")
@@ -90,3 +117,13 @@ func _run() -> void:
 func _expect(condition: bool, label: String, errors: PackedStringArray) -> void:
 	if not condition:
 		errors.append(label)
+
+
+func _find_text_button(node: Node, text: String) -> Button:
+	if node is Button and (node as Button).text == text:
+		return node as Button
+	for child in node.get_children():
+		var found := _find_text_button(child, text)
+		if found != null:
+			return found
+	return null

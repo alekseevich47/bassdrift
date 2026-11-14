@@ -162,6 +162,10 @@ func _enter_race(request: Dictionary) -> void:
 	var payload := race_request.duplicate(true)
 	node.set_meta("apex_race_request", payload)
 	get_tree().root.set_meta("apex_race_request", payload)
+	if node.has_signal("exit_requested"):
+		node.exit_requested.connect(show_menu)
+	# Bind before configure so a start failure still reaches ResultScreen.
+	_bind_race(node)
 	var custom := str(payload.get("mode", "")) == "custom"
 	if custom and node.has_method("configure_user_audio"):
 		node.configure_user_audio(str(payload.get("audio_path", "")))
@@ -169,29 +173,27 @@ func _enter_race(request: Dictionary) -> void:
 		node.configure_custom(payload)
 	elif node.has_method("configure"):
 		node.configure(str(payload.get("level_id", "")))
-	if node.has_signal("exit_requested"):
-		node.exit_requested.connect(show_menu)
-	_bind_race(node)
 	_mount_hud(node)
 	_active = "race"
 	scene_changed.emit("race")
 
 
 func _mount_hud(race: Node) -> void:
-	# Gameplay draws its own readout and emits hud_updated. A second bar would stack.
-	if race and (race.has_signal("hud_updated") or race.has_method("hud_snapshot")):
-		return
-	if _living_group("apex_race_hud") != null:
-		return
+	# hud_updated / hud_snapshot mean the race draws the score itself.
+	# RaceWorld publishes hud_state_changed instead, so this overlay is the readout.
+	var race_owns_readout := race != null and (race.has_signal("hud_updated") or race.has_method("hud_snapshot"))
+	var already := _living_group("apex_race_hud") != null
 	if race and race.find_child("RaceHUD", true, false) != null:
-		return
-	var hud := _mount(RACE_HUD_SCENE, 40)
-	if hud == null:
-		return
-	if hud.has_signal("pause_requested"):
-		hud.pause_requested.connect(show_pause)
-	if hud.has_signal("run_finished"):
-		hud.run_finished.connect(show_results)
+		already = true
+	if not race_owns_readout and not already:
+		var hud := _mount(RACE_HUD_SCENE, 40)
+		if hud != null:
+			if hud.has_signal("pause_requested"):
+				hud.pause_requested.connect(show_pause)
+			if hud.has_signal("run_finished"):
+				hud.run_finished.connect(show_results)
+	if race and race.has_method("sync_meta_chrome"):
+		race.sync_meta_chrome()
 
 
 func _bind_race(node: Node) -> void:
@@ -215,6 +217,8 @@ func _bind_result_node(node: Node) -> void:
 		_connect_loose(node, sig_name, _on_race_result_signal)
 	if node.has_signal("pause_requested"):
 		_connect_loose(node, "pause_requested", _on_pause_signal)
+	if node.has_signal("tutorial_changed") and not node.tutorial_changed.is_connected(_on_tutorial_changed):
+		node.tutorial_changed.connect(_on_tutorial_changed)
 
 
 func _connect_loose(node: Node, sig_name: String, method: Callable) -> void:
@@ -246,12 +250,24 @@ func _on_pause_signal(_payload = null) -> void:
 	show_pause()
 
 
+func _on_tutorial_changed(active: bool, message: String) -> void:
+	var tip := _overlay("TutorialOverlay")
+	if tip == null:
+		tip = _living_group("apex_tutorial")
+	if tip and tip.has_method("sync_from_race"):
+		tip.sync_from_race(active, message)
+
+
 func _coerce_result(payload) -> Dictionary:
 	if typeof(payload) == TYPE_DICTIONARY:
 		return payload
 	if typeof(payload) == TYPE_STRING:
 		return {
-			"crashed": true,
+			"ok": false,
+			"start_failed": true,
+			"crashed": false,
+			"failed": false,
+			"wrecked": false,
 			"can_revive": false,
 			"reason": str(payload),
 			"status": _start_failure_copy(str(payload)),
