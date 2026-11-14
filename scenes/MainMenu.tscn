@@ -7,7 +7,7 @@
 shader = ExtResource("2_shader")
 
 [node name="MainMenu" type="Control"]
-layout_mode = 3
+layout_mode = 1
 anchors_preset = 15
 anchor_right = 1.0
 anchor_bottom = 1.0
@@ -31,16 +31,16 @@ layout_mode = 1
 anchors_preset = 15
 anchor_right = 1.0
 anchor_bottom = 1.0
-offset_left = 40.0
-offset_top = 88.0
-offset_right = -40.0
-offset_bottom = -64.0
+offset_left = 28.0
+offset_top = 32.0
+offset_right = -28.0
+offset_bottom = -24.0
 grow_horizontal = 2
 grow_vertical = 2
 
 [node name="Layout" type="VBoxContainer" parent="Margin"]
 layout_mode = 2
-theme_override_constants/separation = 16
+theme_override_constants/separation = 10
 
 [node name="Kicker" type="Label" parent="Margin/Layout"]
 unique_name_in_owner = true
@@ -61,6 +61,57 @@ text = "One finger. One line. Don't miss the beat."
 horizontal_alignment = 1
 autowrap_mode = 2
 
+[node name="Rule" type="ColorRect" parent="Margin/Layout"]
+custom_minimum_size = Vector2(0, 3)
+layout_mode = 2
+mouse_filter = 2
+color = Color(1, 0.176, 0.541, 0.9)
+
+[node name="Stage" type="Control" parent="Margin/Layout"]
+unique_name_in_owner = true
+clip_contents = true
+custom_minimum_size = Vector2(0, 300)
+layout_mode = 2
+size_flags_vertical = 3
+mouse_filter = 2
+
+[node name="Plate" type="ColorRect" parent="Margin/Layout/Stage"]
+z_index = 1
+layout_mode = 1
+anchor_top = 1.0
+anchor_right = 1.0
+anchor_bottom = 1.0
+offset_top = -78.0
+grow_horizontal = 2
+mouse_filter = 2
+color = Color(0.027451, 0.023529, 0.05098, 0.88)
+
+[node name="CarName" type="Label" parent="Margin/Layout/Stage"]
+unique_name_in_owner = true
+z_index = 2
+layout_mode = 1
+anchor_top = 1.0
+anchor_right = 1.0
+anchor_bottom = 1.0
+offset_top = -68.0
+offset_bottom = -36.0
+grow_horizontal = 2
+text = "Street 86"
+horizontal_alignment = 1
+
+[node name="PaintName" type="Label" parent="Margin/Layout/Stage"]
+unique_name_in_owner = true
+z_index = 2
+layout_mode = 1
+anchor_top = 1.0
+anchor_right = 1.0
+anchor_bottom = 1.0
+offset_top = -34.0
+offset_bottom = -8.0
+grow_horizontal = 2
+text = "GLOSS"
+horizontal_alignment = 1
+
 [node name="Status" type="Label" parent="Margin/Layout"]
 unique_name_in_owner = true
 layout_mode = 2
@@ -68,12 +119,58 @@ text = "Novice"
 horizontal_alignment = 1
 autowrap_mode = 2
 
-[node name="Spacer" type="Control" parent="Margin/Layout"]
+[node name="Nav" type="GridContainer" parent="Margin/Layout"]
 layout_mode = 2
-size_flags_vertical = 3
+theme_override_constants/h_separation = 12
+theme_override_constants/v_separation = 12
+columns = 2
+
+[node name="LevelsButton" type="Button" parent="Margin/Layout/Nav"]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(0, 64)
+layout_mode = 2
+size_flags_horizontal = 3
+text = "LEVELS"
+
+[node name="CustomButton" type="Button" parent="Margin/Layout/Nav"]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(0, 64)
+layout_mode = 2
+size_flags_horizontal = 3
+text = "CUSTOM"
+
+[node name="GarageButton" type="Button" parent="Margin/Layout/Nav"]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(0, 64)
+layout_mode = 2
+size_flags_horizontal = 3
+text = "GARAGE"
+
+[node name="PilotButton" type="Button" parent="Margin/Layout/Nav"]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(0, 64)
+layout_mode = 2
+size_flags_horizontal = 3
+text = "PILOT"
+
+[node name="SettingsButton" type="Button" parent="Margin/Layout"]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(0, 56)
+layout_mode = 2
+text = "SETTINGS"
 
 [node name="RaceButton" type="Button" parent="Margin/Layout"]
 unique_name_in_owner = true
 custom_minimum_size = Vector2(0, 76)
 layout_mode = 2
 text = "RACE"
+
+[node name="ScreenHost" type="Control" parent="."]
+unique_name_in_owner = true
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+mouse_filter = 2

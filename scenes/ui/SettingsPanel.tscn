@@ -1,0 +1,160 @@
+[gd_scene load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scripts/ui/SettingsPanel.gd" id="1_settings"]
+
+[node name="SettingsPanel" type="VBoxContainer"]
+theme_override_constants/separation = 10
+script = ExtResource("1_settings")
+
+[node name="AudioLabel" type="Label" parent="."]
+unique_name_in_owner = true
+layout_mode = 2
+text = "AUDIO"
+
+[node name="MusicRow" type="HBoxContainer" parent="."]
+layout_mode = 2
+theme_override_constants/separation = 8
+
+[node name="MusicCheck" type="CheckBox" parent="MusicRow"]
+unique_name_in_owner = true
+layout_mode = 2
+text = "Music"
+
+[node name="MusicSlider" type="HSlider" parent="MusicRow"]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(0, 42)
+layout_mode = 2
+size_flags_horizontal = 3
+max_value = 100.0
+step = 1.0
+value = 85.0
+
+[node name="MusicValue" type="Label" parent="MusicRow"]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(52, 0)
+layout_mode = 2
+text = "85%"
+horizontal_alignment = 2
+
+[node name="SfxRow" type="HBoxContainer" parent="."]
+layout_mode = 2
+theme_override_constants/separation = 8
+
+[node name="SfxCheck" type="CheckBox" parent="SfxRow"]
+unique_name_in_owner = true
+layout_mode = 2
+text = "SFX"
+
+[node name="SfxSlider" type="HSlider" parent="SfxRow"]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(0, 42)
+layout_mode = 2
+size_flags_horizontal = 3
+max_value = 100.0
+step = 1.0
+value = 100.0
+
+[node name="SfxValue" type="Label" parent="SfxRow"]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(52, 0)
+layout_mode = 2
+text = "100%"
+horizontal_alignment = 2
+
+[node name="GraphicsLabel" type="Label" parent="."]
+unique_name_in_owner = true
+layout_mode = 2
+text = "GRAPHICS"
+
+[node name="GraphicsRow" type="HBoxContainer" parent="."]
+layout_mode = 2
+theme_override_constants/separation = 8
+
+[node name="LowButton" type="Button" parent="GraphicsRow"]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(0, 52)
+layout_mode = 2
+size_flags_horizontal = 3
+text = "LOW"
+
+[node name="MedButton" type="Button" parent="GraphicsRow"]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(0, 52)
+layout_mode = 2
+size_flags_horizontal = 3
+text = "MED"
+
+[node name="HighButton" type="Button" parent="GraphicsRow"]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(0, 52)
+layout_mode = 2
+size_flags_horizontal = 3
+text = "HIGH"
+
+[node name="QualityHint" type="Label" parent="."]
+unique_name_in_owner = true
+layout_mode = 2
+autowrap_mode = 2
+text = "Medium is the balanced night."
+
+[node name="LatencyLabel" type="Label" parent="."]
+unique_name_in_owner = true
+layout_mode = 2
+text = "LATENCY"
+
+[node name="LatencyReadout" type="Label" parent="."]
+unique_name_in_owner = true
+layout_mode = 2
+text = "0 ms"
+
+[node name="LatencySlider" type="HSlider" parent="."]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(0, 42)
+layout_mode = 2
+min_value = -250.0
+max_value = 250.0
+step = 1.0
+
+[node name="CalibrateRow" type="HBoxContainer" parent="."]
+layout_mode = 2
+theme_override_constants/separation = 8
+
+[node name="CalibrateButton" type="Button" parent="CalibrateRow"]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(0, 52)
+layout_mode = 2
+size_flags_horizontal = 3
+text = "CALIBRATE"
+
+[node name="ResetButton" type="Button" parent="CalibrateRow"]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(0, 52)
+layout_mode = 2
+size_flags_horizontal = 3
+text = "ZERO"
+
+[node name="TapButton" type="Button" parent="."]
+unique_name_in_owner = true
+visible = false
+custom_minimum_size = Vector2(0, 64)
+layout_mode = 2
+text = "TAP"
+
+[node name="BeatLamp" type="ColorRect" parent="."]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(0, 8)
+layout_mode = 2
+mouse_filter = 2
+color = Color(0.239216, 0.882353, 1, 0)
+
+[node name="CalibrateStatus" type="Label" parent="."]
+unique_name_in_owner = true
+layout_mode = 2
+autowrap_mode = 2
+text = "Shift the beat line to match your speakers."
+
+[node name="TipsButton" type="Button" parent="."]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(0, 52)
+layout_mode = 2
+text = "SHOW TIPS"
