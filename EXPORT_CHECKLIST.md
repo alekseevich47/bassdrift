@@ -25,7 +25,7 @@ The debug workflow does not produce a store bundle.
 
 1. Create a release keystore offline and keep it out of git. Bump `version/code` on every upload and set `version/name`.
 2. In `export_presets.cfg`, set `gradle_build/export_format=1` (AAB). Point `keystore/release`, `keystore/release_user`, and `keystore/release_password` at the release key through the editor, or inject them in CI from secrets. Godot stores passwords in `.godot/export_credentials.cfg`, which is gitignored.
-3. Export with Godot 4.3: **Project → Export → Android → Export AAB**, or `godot --headless --export-release "Android" build/apex-beat.aab`.
+3. In Godot 4.3 choose **Project → Install Android Build Template** once, then **Project → Export → Android → Export AAB**. Headless export is `godot --headless --install-android-build-template --export-release "Android" build/apex-beat.aab`.
 4. Google Play: upload the `.aab`, enroll in Play App Signing, and keep `com.apexbeat.tougedrift` stable. Target SDK is 34. Declare the audio-file permission if the build still reads user music.
 5. RuStore: upload an `.aab` (preferred) or a release APK signed with the same certificate you will keep using. `versionCode` must increase. The debug keystore cannot update a store build.
 
