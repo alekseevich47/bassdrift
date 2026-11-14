@@ -34,9 +34,9 @@ const SKINS := [
 ]
 
 const BPM_PRESETS := [
-	{"name": "FUNK 130", "bpm": 130.0},
-	{"name": "DnB 174", "bpm": 174.0},
-	{"name": "HOUSE 128", "bpm": 128.0},
+	{"name": "ФАНК 130", "bpm": 130.0},
+	{"name": "Драм-н-бейс 174", "bpm": 174.0},
+	{"name": "ХАУС 128", "bpm": 128.0},
 ]
 
 var selected_preset: int = 0

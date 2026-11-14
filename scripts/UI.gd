@@ -27,9 +27,11 @@ signal restart_pressed
 @onready var skin_box: HBoxContainer = $Settings/SkinBox
 @onready var close_settings: Button = $Settings/CloseButton
 @onready var preset_option: OptionButton = $StartScreen/PresetOption
+@onready var perfect_toast: Label = $HUD/PerfectToast
 
 var _hint_pulse: float = 0.0
 var _metro_flash: float = 0.0
+var _perfect_timer: float = 0.0
 
 
 func _ready() -> void:
@@ -38,6 +40,9 @@ func _ready() -> void:
 	again_btn.pressed.connect(func(): restart_pressed.emit())
 	settings_btn.pressed.connect(_toggle_settings)
 	close_settings.pressed.connect(func(): settings_panel.visible = false)
+	if perfect_toast:
+		perfect_toast.visible = false
+		perfect_toast.modulate.a = 0.0
 
 	vol_slider.min_value = 0.0
 	vol_slider.max_value = 1.0
@@ -76,7 +81,7 @@ func _ready() -> void:
 
 func _refresh_bpm_label() -> void:
 	var p: Dictionary = GameState.BPM_PRESETS[GameState.selected_preset]
-	bpm_label.text = "%s  ·  HOLD TO DRIFT" % p["name"]
+	bpm_label.text = "%s  ·  УДЕРЖИВАЙ ДЛЯ ДРИФТА" % p["name"]
 
 
 func _build_skin_buttons() -> void:
@@ -111,6 +116,20 @@ func show_hud() -> void:
 	score_label.text = "0"
 	combo_plaque.visible = false
 	progress_bar.value = 0.0
+	if perfect_toast:
+		perfect_toast.visible = false
+		perfect_toast.modulate.a = 0.0
+	_perfect_timer = 0.0
+
+
+func show_perfect_toast() -> void:
+	if perfect_toast == null:
+		return
+	perfect_toast.text = "ИДЕАЛЬНЫЙ ДРИФТ"
+	perfect_toast.visible = true
+	perfect_toast.modulate.a = 1.0
+	perfect_toast.scale = Vector2(1.15, 1.15)
+	_perfect_timer = 0.85
 
 
 func _on_score(s: int) -> void:
@@ -120,7 +139,7 @@ func _on_score(s: int) -> void:
 func _on_combo(c: int) -> void:
 	if c >= 2:
 		combo_plaque.visible = true
-		combo_plaque.text = "COMBO x%d" % c
+		combo_plaque.text = "КОМБО ×%d" % c
 	else:
 		combo_plaque.visible = false
 
@@ -129,8 +148,8 @@ func _on_game_over(final_score: int, best: int, track_percent: float) -> void:
 	hud.visible = false
 	game_over_screen.visible = true
 	go_score.text = str(final_score)
-	go_best.text = "BEST  %d" % best
-	go_percent.text = "%d%% TRACK" % int(track_percent * 100.0)
+	go_best.text = "РЕКОРД  %d" % best
+	go_percent.text = "%d%% ТРЕКА" % int(track_percent * 100.0)
 	_build_skin_buttons()
 
 
@@ -144,7 +163,7 @@ func _toggle_settings() -> void:
 
 func _on_offset_changed(v: float) -> void:
 	GameState.set_audio_offset(v)
-	offset_value.text = "%+d ms" % int(v)
+	offset_value.text = "%+d мс" % int(v)
 
 
 func _on_beat(_idx: int, _is_drop: bool) -> void:
@@ -162,3 +181,12 @@ func _process(delta: float) -> void:
 	if settings_panel.visible:
 		_metro_flash = maxf(0.0, _metro_flash - delta * 4.0)
 		metronome.color = Color(0.0, 0.94, 1.0, _metro_flash)
+
+	if _perfect_timer > 0.0 and perfect_toast:
+		_perfect_timer -= delta
+		perfect_toast.scale = perfect_toast.scale.lerp(Vector2.ONE, clampf(delta * 10.0, 0.0, 1.0))
+		if _perfect_timer <= 0.25:
+			perfect_toast.modulate.a = maxf(0.0, _perfect_timer / 0.25)
+		if _perfect_timer <= 0.0:
+			perfect_toast.visible = false
+			perfect_toast.modulate.a = 0.0

@@ -28,16 +28,17 @@ var _turn_edge: bool = false
 @onready var headlight_r: Polygon2D = $HeadlightR
 @onready var spark_particles: GPUParticles2D = $SparkTrail
 @onready var crash_particles: GPUParticles2D = $CrashBurst
-@onready var skid_root: Node2D = $SkidMarks
 
+## World-space parent for skid Line2D (must NOT rotate/move with the car).
+var skid_world: Node2D = null
 var _skid_left: Line2D
 var _skid_right: Line2D
 var _active_skids: Array[Dictionary] = []
 var _holding_skid: bool = false
+var _skids_built: bool = false
 
 
 func _ready() -> void:
-	_build_skid_emitters()
 	_apply_skin(GameState.get_skin_colors())
 	GameState.skin_changed.connect(_on_skin_changed)
 	spark_particles.emitting = false
@@ -49,6 +50,9 @@ func _ready() -> void:
 		_make_additive($HeadlightGlowL)
 	if has_node("HeadlightGlowR"):
 		_make_additive($HeadlightGlowR)
+	# Hide legacy child if present — skids live in world layer.
+	if has_node("SkidMarks"):
+		$SkidMarks.visible = false
 
 
 func _make_additive(node: CanvasItem) -> void:
@@ -91,17 +95,38 @@ func _setup_particles() -> void:
 	crash_particles.process_material = cmat
 
 
+func set_skid_parent(parent: Node2D) -> void:
+	skid_world = parent
+	_build_skid_emitters()
+
+
 func _build_skid_emitters() -> void:
-	_skid_left = Line2D.new()
-	_skid_right = Line2D.new()
-	for line in [_skid_left, _skid_right]:
-		line.width = 3.0
-		line.default_color = Color(0.7, 0.7, 0.85, 0.55)
-		line.antialiased = true
-		line.begin_cap_mode = Line2D.LINE_CAP_ROUND
-		line.end_cap_mode = Line2D.LINE_CAP_ROUND
-		line.z_index = -1
-		skid_root.add_child(line)
+	if skid_world == null:
+		return
+	# Tear down previous emitters if rebinding
+	if _skid_left and is_instance_valid(_skid_left):
+		_skid_left.queue_free()
+	if _skid_right and is_instance_valid(_skid_right):
+		_skid_right.queue_free()
+	_clear_frozen_skids()
+
+	_skid_left = _make_skid_line()
+	_skid_right = _make_skid_line()
+	skid_world.add_child(_skid_left)
+	skid_world.add_child(_skid_right)
+	_skids_built = true
+
+
+func _make_skid_line() -> Line2D:
+	var line := Line2D.new()
+	line.width = 3.0
+	line.default_color = Color(0.7, 0.7, 0.85, 0.55)
+	line.antialiased = true
+	line.begin_cap_mode = Line2D.LINE_CAP_ROUND
+	line.end_cap_mode = Line2D.LINE_CAP_ROUND
+	line.z_index = -1
+	line.top_level = false
+	return line
 
 
 func _on_skin_changed(_idx: int) -> void:
@@ -113,9 +138,7 @@ func _apply_skin(colors: Array) -> void:
 	cabin.color = colors[0].lightened(0.15)
 	headlight_l.color = colors[2]
 	headlight_r.color = colors[2]
-	# Accent outline via modulate on hull children feel
 	hull.modulate = Color(1, 1, 1, 1)
-	# Rebuild hull with accent edge as second poly if needed — keep simple
 	if has_node("AccentStripe"):
 		$AccentStripe.color = colors[1]
 
@@ -133,14 +156,28 @@ func reset_car(pos: Vector2) -> void:
 	spark_particles.emitting = false
 	visible = true
 	modulate = Color.WHITE
-	for line in [_skid_left, _skid_right]:
-		line.clear_points()
 	_holding_skid = false
-	# Clear faded skids
-	for child in skid_root.get_children():
-		if child != _skid_left and child != _skid_right:
-			child.queue_free()
+	if _skid_left and is_instance_valid(_skid_left):
+		_skid_left.clear_points()
+	if _skid_right and is_instance_valid(_skid_right):
+		_skid_right.clear_points()
+	_clear_frozen_skids()
+
+
+func _clear_frozen_skids() -> void:
+	for entry in _active_skids:
+		var left: Line2D = entry.get("left")
+		var right: Line2D = entry.get("right")
+		if left and is_instance_valid(left):
+			left.queue_free()
+		if right and is_instance_valid(right):
+			right.queue_free()
 	_active_skids.clear()
+	# Also wipe any leftover children on the world layer (except active emitters)
+	if skid_world:
+		for child in skid_world.get_children():
+			if child != _skid_left and child != _skid_right:
+				child.queue_free()
 
 
 func set_road(r: Node2D) -> void:
@@ -165,17 +202,14 @@ func _physics_process(delta: float) -> void:
 	_update_target_dir()
 	_detect_turn_edge()
 
-	# Velocity direction lerp
 	velocity_dir = velocity_dir.lerp(target_dir, clampf(VEL_LERP * delta, 0.0, 1.0)).normalized()
 	global_position += velocity_dir * BASE_SPEED * delta
 
-	# Visual slip: hull rotates faster toward target
 	var vel_angle := velocity_dir.angle()
 	var tgt_angle := target_dir.angle()
 	slip_angle = wrapf(tgt_angle - vel_angle, -PI, PI)
 
-	var hull_target := slip_angle
-	hull.rotation = lerp_angle(hull.rotation, hull_target, clampf(HULL_LERP * delta, 0.0, 1.0))
+	hull.rotation = lerp_angle(hull.rotation, slip_angle, clampf(HULL_LERP * delta, 0.0, 1.0))
 	rotation = vel_angle + PI * 0.5
 
 	_update_skids(delta)
@@ -188,7 +222,6 @@ func _update_target_dir() -> void:
 	if autopilot and road and road.has_method("get_autopilot_dir"):
 		target_dir = road.get_autopilot_dir(global_position)
 		return
-	# Finger up → LEFT, finger down → RIGHT
 	if finger_down:
 		target_dir = DIR_RIGHT
 	else:
@@ -203,16 +236,20 @@ func _detect_turn_edge() -> void:
 
 
 func _update_skids(delta: float) -> void:
+	if not _skids_built or skid_world == null:
+		return
+
 	var slipping := absf(slip_angle) > SKID_SLIP_THRESHOLD
 	if slipping and alive:
 		if not _holding_skid:
 			_holding_skid = true
 			_skid_left.clear_points()
 			_skid_right.clear_points()
+		# World-space points — skid_world stays at identity under Main.
 		var side := velocity_dir.orthogonal().normalized() * 8.0
-		_skid_left.add_point(skid_root.to_local(global_position - side))
-		_skid_right.add_point(skid_root.to_local(global_position + side))
-		# Cap point count
+		var gp := global_position
+		_skid_left.add_point(skid_world.to_local(gp - side))
+		_skid_right.add_point(skid_world.to_local(gp + side))
 		if _skid_left.get_point_count() > 80:
 			_skid_left.remove_point(0)
 			_skid_right.remove_point(0)
@@ -220,7 +257,6 @@ func _update_skids(delta: float) -> void:
 		_holding_skid = false
 		_freeze_skid_pair()
 
-	# Fade frozen skids
 	var i := 0
 	while i < _active_skids.size():
 		var entry: Dictionary = _active_skids[i]
@@ -228,9 +264,11 @@ func _update_skids(delta: float) -> void:
 		var a := 1.0 - float(entry["age"]) / SKID_FADE
 		var left: Line2D = entry["left"]
 		var right: Line2D = entry["right"]
-		if a <= 0.0:
-			left.queue_free()
-			right.queue_free()
+		if a <= 0.0 or not is_instance_valid(left) or not is_instance_valid(right):
+			if is_instance_valid(left):
+				left.queue_free()
+			if is_instance_valid(right):
+				right.queue_free()
 			_active_skids.remove_at(i)
 			continue
 		var col := Color(0.7, 0.7, 0.85, 0.55 * a)
@@ -243,17 +281,12 @@ func _update_skids(delta: float) -> void:
 func _freeze_skid_pair() -> void:
 	if _skid_left.get_point_count() < 2:
 		return
-	var l := Line2D.new()
-	var r := Line2D.new()
-	for src_dst in [[_skid_left, l], [_skid_right, r]]:
-		var src: Line2D = src_dst[0]
-		var dst: Line2D = src_dst[1]
-		dst.width = 3.0
-		dst.default_color = Color(0.7, 0.7, 0.85, 0.55)
-		dst.antialiased = true
-		dst.z_index = -1
-		dst.points = src.points
-		skid_root.add_child(dst)
+	var l := _make_skid_line()
+	var r := _make_skid_line()
+	l.points = _skid_left.points
+	r.points = _skid_right.points
+	skid_world.add_child(l)
+	skid_world.add_child(r)
 	_active_skids.append({"left": l, "right": r, "age": 0.0})
 	_skid_left.clear_points()
 	_skid_right.clear_points()
@@ -281,7 +314,6 @@ func _do_crash() -> void:
 	spark_particles.emitting = false
 	Engine.time_scale = 0.25
 	crashed.emit()
-	# Slow-mo window then restore + game over
 	get_tree().create_timer(0.4, true, false, true).timeout.connect(_after_crash)
 
 
@@ -312,6 +344,5 @@ func _flash_sparks() -> void:
 func _score_tick(delta: float) -> void:
 	if autopilot or not alive or GameState.phase != GameState.Phase.PLAYING:
 		return
-	# Continuous drift score
 	var slip_bonus := 1.0 + absf(slip_angle) * 2.0
 	GameState.add_score(int(12.0 * delta * 60.0 * slip_bonus))

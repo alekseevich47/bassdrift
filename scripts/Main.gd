@@ -5,6 +5,7 @@ extends Node2D
 @onready var car: Node2D = $Car
 @onready var camera: Camera2D = $CameraJuice
 @onready var ui: CanvasLayer = $UI
+@onready var skid_layer: Node2D = $SkidLayer
 @onready var grid_bg: ColorRect = $ParallaxBG/NeonGrid
 @onready var world_env: WorldEnvironment = $WorldEnvironment
 @onready var glitch_rect: ColorRect = $GlitchLayer/GlitchRect
@@ -18,6 +19,7 @@ func _ready() -> void:
 	_setup_environment()
 	_setup_shaders()
 	car.set_road(road)
+	car.set_skid_parent(skid_layer)
 	camera.follow_target = car
 	car.autopilot = true
 	road.set_autopilot(true)
@@ -108,7 +110,8 @@ func _on_car_crashed() -> void:
 
 
 func _on_perfect() -> void:
-	pass
+	if ui.has_method("show_perfect_toast"):
+		ui.show_perfect_toast()
 
 
 func _on_bass(energy: float) -> void:
