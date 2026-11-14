@@ -1,0 +1,62 @@
+[gd_scene load_steps=3 format=3]
+
+[ext_resource type="Script" path="res://scripts/ui/PauseOverlay.gd" id="1_pause"]
+[ext_resource type="PackedScene" path="res://scenes/ui/SettingsPanel.tscn" id="2_panel"]
+
+[node name="PauseOverlay" type="CanvasLayer"]
+script = ExtResource("1_pause")
+
+[node name="Dimmer" type="ColorRect" parent="."]
+unique_name_in_owner = true
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+mouse_filter = 0
+color = Color(0.02, 0.01, 0.04, 0.84)
+
+[node name="Panel" type="VBoxContainer" parent="."]
+unique_name_in_owner = true
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+offset_left = 24.0
+offset_top = 36.0
+offset_right = -24.0
+offset_bottom = -28.0
+grow_horizontal = 2
+grow_vertical = 2
+theme_override_constants/separation = 12
+
+[node name="Title" type="Label" parent="Panel"]
+unique_name_in_owner = true
+layout_mode = 2
+text = "PAUSED"
+horizontal_alignment = 1
+
+[node name="Scroll" type="ScrollContainer" parent="Panel"]
+unique_name_in_owner = true
+layout_mode = 2
+size_flags_horizontal = 3
+size_flags_vertical = 3
+horizontal_scroll_mode = 0
+
+[node name="Settings" parent="Panel/Scroll" instance=ExtResource("2_panel")]
+unique_name_in_owner = true
+layout_mode = 2
+size_flags_horizontal = 3
+
+[node name="ResumeButton" type="Button" parent="Panel"]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(0, 60)
+layout_mode = 2
+text = "RESUME"
+
+[node name="QuitButton" type="Button" parent="Panel"]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(0, 56)
+layout_mode = 2
+text = "QUIT TO MENU"

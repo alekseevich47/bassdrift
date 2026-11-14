@@ -1,0 +1,39 @@
+; Engine configuration file.
+; APEX BEAT: Touge Drift — Godot 4.3 mobile portrait project.
+
+config_version=5
+
+[application]
+
+config/name="APEX BEAT: Touge Drift"
+config/description="Vertical one-finger rhythm drift racer."
+run/main_scene="res://scenes/Main.tscn"
+config/features=PackedStringArray("4.3", "Mobile")
+config/icon="res://icon.svg"
+boot_splash/bg_color=Color(0.03, 0.02, 0.06, 1)
+boot_splash/show_image=false
+
+[autoload]
+
+SaveManager="*res://autoload/SaveManager.gd"
+AudioAnalyzer="*res://autoload/AudioAnalyzer.gd"
+GameData="*res://autoload/GameData.gd"
+AdMonetizationStub="*res://autoload/AdMonetizationStub.gd"
+
+[display]
+
+window/size/viewport_width=720
+window/size/viewport_height=1280
+window/stretch/mode="canvas_items"
+window/stretch/aspect="expand"
+window/handheld/orientation=1
+window/energy_saving/keep_screen_on=true
+
+[rendering]
+
+renderer/rendering_method="mobile"
+textures/vram_compression/import_etc2_astc=true
+
+[gui]
+
+common/snap_controls_to_pixels=true
